@@ -1,7 +1,8 @@
 FROM registry.access.redhat.com/ubi8/ubi
 
 # Install build dependencies (including zstd-devel for core compression)
-RUN yum install -y make gcc zlib-devel libzstd-devel git bzip2 && yum clean all
+RUN yum install -y make gcc zlib-devel libzstd-devel git bzip2 \
+    && yum clean all
 
 # Bootstrap: install SBCL 2.2.9 binary (works with glibc 2.28)
 RUN cd /tmp && \

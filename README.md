@@ -19,10 +19,10 @@ make doctor   # check all prerequisites
 ## Quick start
 
 ```
-git clone https://github.com/atgreen/whistler.git ~/git/whistler
 git clone https://github.com/atgreen/block-copyfail.git
 cd block-copyfail
-sudo make run
+make ubi8-build
+sudo ./block-copyfail
 ```
 
 The blocker stays active until you press Ctrl-C, then cleanly detaches.
