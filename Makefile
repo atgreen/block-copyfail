@@ -5,13 +5,14 @@ SBCL     := sbcl
 
 BIN      := block-copyfail
 
-.PHONY: help run build doctor
+.PHONY: help run build elf doctor
 
 help:
 	@echo "Usage: make <target>"
 	@echo ""
 	@echo "  build    Build standalone binary (./$(BIN))"
 	@echo "  run      Load and run directly via SBCL (requires sudo)"
+	@echo "  elf      Compile to block-copyfail.bpf.o (loadable by bpftool/libbpf)"
 	@echo "  doctor   Check prerequisites (BTF, BPF LSM, SBCL, Whistler)"
 
 run:
@@ -25,6 +26,13 @@ build:
 	  --eval '(push "--build" sb-ext:*posix-argv*)' \
 	  --load block-copyfail.lisp \
 	  --eval '(sb-ext:save-lisp-and-die "$(BIN)" :toplevel #'"'"'whistler-loader-user::run :executable t :compression t)'
+
+elf:
+	$(SBCL) --noinform --non-interactive \
+	  --eval '(pushnew "$(WHISTLER)/" asdf:*central-registry*)' \
+	  --eval '(asdf:load-system "whistler")' \
+	  --eval '(whistler:compile-file* "block-copyfail-elf.lisp" "block-copyfail.bpf.o")'
+	@echo "Wrote block-copyfail.bpf.o"
 
 doctor:
 	@echo "Checking prerequisites..."

@@ -34,6 +34,22 @@ make build
 sudo ./block-copyfail
 ```
 
+## Compile to ELF object
+
+Produces a standard `.bpf.o` file loadable by `bpftool`, `libbpf`, or any BPF loader:
+
+```
+make elf
+sudo mkdir -p /sys/fs/bpf/copyfail
+sudo bpftool prog loadall block-copyfail.bpf.o /sys/fs/bpf/copyfail autoattach
+```
+
+To detach and remove:
+
+```
+sudo rm -rf /sys/fs/bpf/copyfail
+```
+
 ## Testing
 
 With the blocker running in one terminal, trigger a test in another:
