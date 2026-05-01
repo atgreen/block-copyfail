@@ -1,6 +1,6 @@
 # block-copyfail
 
-Runtime mitigation for [CVE-2026-31431](https://copy.fail/) ("Copy Fail") — a Linux kernel privilege escalation via the `authencesn` cryptographic template in `algif_aead`.
+**Proof of concept** runtime mitigation for [CVE-2026-31431](https://copy.fail/) ("Copy Fail") — a Linux kernel privilege escalation via the `authencesn` cryptographic template in `algif_aead`.
 
 Unlike module blacklisting, this **requires no reboot**. A BPF LSM program hooks `socket_bind` and blocks only the vulnerable `authencesn` algorithm. All other AF_ALG usage (dm-crypt, OpenSSL afalg engine, hash, skcipher) is unaffected.
 
