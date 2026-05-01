@@ -34,6 +34,16 @@ make build
 sudo ./block-copyfail
 ```
 
+## Build a portable binary (EL8+)
+
+Build inside a UBI8 container to produce a binary that runs on RHEL/CentOS/Alma/Rocky 8+, Fedora, Ubuntu 20.04+, and any Linux with glibc 2.28 or newer. No SBCL or Whistler needed on the target system — just copy the binary and run it.
+
+```
+make ubi8-build
+scp block-copyfail root@server:
+ssh root@server ./block-copyfail
+```
+
 ## Compile to ELF object
 
 Produces a standard `.bpf.o` file loadable by `bpftool`, `libbpf`, or any BPF loader:

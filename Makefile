@@ -4,8 +4,9 @@ WHISTLER := $(HOME)/git/whistler
 SBCL     := sbcl
 
 BIN      := block-copyfail
+SBCL_SAVE_OPTS := :compression t
 
-.PHONY: help run build elf doctor
+.PHONY: help run build elf ubi8-build doctor
 
 help:
 	@echo "Usage: make <target>"
@@ -13,6 +14,7 @@ help:
 	@echo "  build    Build standalone binary (./$(BIN))"
 	@echo "  run      Load and run directly via SBCL (requires sudo)"
 	@echo "  elf      Compile to block-copyfail.bpf.o (loadable by bpftool/libbpf)"
+	@echo "  ubi8-build  Build binary in UBI8 ubi8-build (older glibc)"
 	@echo "  doctor   Check prerequisites (BTF, BPF LSM, SBCL, Whistler)"
 
 run:
@@ -22,10 +24,11 @@ run:
 
 build:
 	$(SBCL) --noinform --non-interactive \
+	  --eval '(require "asdf")' \
 	  --eval '(pushnew "$(WHISTLER)/" asdf:*central-registry*)' \
 	  --eval '(push "--build" sb-ext:*posix-argv*)' \
 	  --load block-copyfail.lisp \
-	  --eval '(sb-ext:save-lisp-and-die "$(BIN)" :toplevel #'"'"'whistler-loader-user::run :executable t :compression t)'
+	  --eval '(sb-ext:save-lisp-and-die "$(BIN)" :toplevel #'"'"'whistler-loader-user::run :executable t $(SBCL_SAVE_OPTS))'
 
 elf:
 	$(SBCL) --noinform --non-interactive \
@@ -33,6 +36,13 @@ elf:
 	  --eval '(asdf:load-system "whistler")' \
 	  --eval '(whistler:compile-file* "block-copyfail-elf.lisp" "block-copyfail.bpf.o")'
 	@echo "Wrote block-copyfail.bpf.o"
+
+ubi8-build:
+	podman build -t block-copyfail-builder -f Containerfile .
+	podman create --name bcf-tmp block-copyfail-builder
+	podman cp bcf-tmp:/build/block-copyfail .
+	podman rm bcf-tmp
+	@echo "Built ./block-copyfail (linked against UBI8 glibc)"
 
 doctor:
 	@echo "Checking prerequisites..."
