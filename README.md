@@ -12,13 +12,13 @@ Blocked attempts are logged in real time with PID, process name, and timestamp.
 - [SBCL](http://www.sbcl.org/) 2.0+
 - [Whistler](https://github.com/atgreen/whistler) (Common Lisp eBPF compiler)
 
-```
+```sh
 make doctor   # check all prerequisites
 ```
 
 ## Quick start
 
-```
+```sh
 git clone https://github.com/atgreen/block-copyfail.git
 cd block-copyfail
 make ubi8-build
@@ -31,7 +31,7 @@ The blocker stays active until you press Ctrl-C, then cleanly detaches.
 
 To build on your own machine you need SBCL and [Whistler](https://github.com/atgreen/whistler) (the Common Lisp eBPF compiler):
 
-```
+```sh
 git clone https://github.com/atgreen/whistler.git ~/git/whistler
 make build
 sudo ./block-copyfail
@@ -41,7 +41,7 @@ sudo ./block-copyfail
 
 Build inside a UBI8 container to produce a binary that runs on RHEL/CentOS/Alma/Rocky 8+, Fedora, Ubuntu 20.04+, and any Linux with glibc 2.28 or newer. No SBCL or Whistler needed on the target system — just copy the binary and run it.
 
-```
+```sh
 make ubi8-build
 scp block-copyfail root@server:
 ssh root@server ./block-copyfail
@@ -51,7 +51,7 @@ ssh root@server ./block-copyfail
 
 Produces a standard `.bpf.o` file loadable by `bpftool`, `libbpf`, or any BPF loader:
 
-```
+```sh
 make elf
 sudo mkdir -p /sys/fs/bpf/copyfail
 sudo bpftool prog loadall block-copyfail.bpf.o /sys/fs/bpf/copyfail autoattach
@@ -59,7 +59,7 @@ sudo bpftool prog loadall block-copyfail.bpf.o /sys/fs/bpf/copyfail autoattach
 
 To detach and remove:
 
-```
+```sh
 sudo rm -rf /sys/fs/bpf/copyfail
 ```
 
@@ -67,7 +67,7 @@ sudo rm -rf /sys/fs/bpf/copyfail
 
 With the blocker running in one terminal, trigger a test in another:
 
-```
+```sh
 python3 trigger-test.py
 ```
 
@@ -75,7 +75,7 @@ The test script attempts an AF_ALG AEAD bind (no exploit is performed).
 
 **Expected output in the test terminal:**
 
-```
+```sh
 BLOCKED: aead/authencesn(hmac(sha256),cbc(aes)) — [Errno 1] Operation not permitted
 BLOCKED: aead/gcm(aes) — [Errno 1] Operation not permitted
 ALLOWED: hash/sha256
@@ -84,7 +84,7 @@ ALLOWED: skcipher/cbc(aes)
 
 **Expected output in the blocker terminal:**
 
-```
+```sh
 Copy Fail blocker active — all AF_ALG AEAD binds blocked.
 Other AF_ALG usage (hash, skcipher) unaffected.
 Watching for blocked attempts. Press Ctrl-C to exit.
