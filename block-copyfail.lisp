@@ -2,9 +2,11 @@
 ;;;
 ;;; SPDX-License-Identifier: MIT
 ;;;
-;;; Hooks lsm/socket_bind and blocks only AF_ALG binds that specify
-;;; the "authencesn" algorithm — the specific template exploited by
-;;; Copy Fail.  All other AF_ALG usage (dm-crypt, hash, skcipher, etc.)
+;;; Hooks lsm/socket_bind and blocks all AF_ALG AEAD binds — the
+;;; subsystem exploited by Copy Fail.  The vulnerability is in
+;;; algif_aead, and authencesn can be nested inside wrapper templates
+;;; (e.g. pcrypt), so blocking the entire AEAD type is the only
+;;; bypass-proof approach.  Other AF_ALG usage (hash, skcipher, etc.)
 ;;; continues to work.
 ;;;
 ;;; Blocked attempts are reported to the console in real time via a
@@ -32,10 +34,11 @@
 
 (whistler:defstruct salg-check
   (family u16)             ;  0: salg_family
-  (pad    (array u8 22))   ;  2: skip type/feat/mask
-  (name-w0 u32)            ; 24: "auth"
-  (name-w1 u32)            ; 28: "ence"
-  (name-w2 u16))           ; 32: "sn"
+  (type-0 u8)              ;  2: 'a'
+  (type-1 u8)              ;  3: 'e'
+  (type-2 u8)              ;  4: 'a'
+  (type-3 u8)              ;  5: 'd'
+  (type-4 u8))             ;  6: '\0'
 
 ;;; Event struct sent to userspace via ring buffer
 (whistler:defstruct block-event
@@ -43,10 +46,6 @@
   (comm (array u8 16))     ;  4: process name
   (ts   u64))              ; 24: ktime_ns timestamp (with padding at 20)
 
-;; "authencesn" as little-endian words
-(defconstant +auth+ #x68747561)
-(defconstant +ence+ #x65636e65)
-(defconstant +sn+   #x6e73)
 (defconstant +af-alg+ 38)
 
 (defun format-current-time ()
@@ -73,16 +72,18 @@
   (with-bpf-session ()
     (bpf:map events :type :ringbuf :max-entries 4096)
 
-    (bpf:prog block-authencesn (:type :lsm
-                                :section "lsm/socket_bind"
-                                :license "GPL")
+    (bpf:prog block-aead (:type :lsm
+                          :section "lsm/socket_bind"
+                          :license "GPL")
       ;; socket_bind(struct socket *sock, struct sockaddr *address, int addrlen)
       (let ((sc (make-salg-check)))
-        (probe-read-kernel sc 34 (ctx u64 8))
+        (probe-read-kernel sc 7 (ctx u64 8))
         (if (and (= (salg-check-family sc) +af-alg+)
-                 (= (salg-check-name-w0 sc) +auth+)
-                 (= (salg-check-name-w1 sc) +ence+)
-                 (= (salg-check-name-w2 sc) +sn+))
+                 (= (salg-check-type-0 sc) 97)    ; 'a'
+                 (= (salg-check-type-1 sc) 101)   ; 'e'
+                 (= (salg-check-type-2 sc) 97)    ; 'a'
+                 (= (salg-check-type-3 sc) 100)   ; 'd'
+                 (= (salg-check-type-4 sc) 0))
             ;; Blocked — emit event, then return -EPERM
             (let ((evt (make-block-event)))
               (setf (block-event-pid evt)
@@ -94,10 +95,10 @@
             (return 0))))
 
     (format *error-output* "Attaching to lsm/socket_bind...~%")
-    (bpf:attach block-authencesn)
+    (bpf:attach block-aead)
 
-    (format t "~&Copy Fail blocker active — authencesn bind blocked.~%")
-    (format t "Other AF_ALG usage (dm-crypt, hash, skcipher) unaffected.~%")
+    (format t "~&Copy Fail blocker active — all AF_ALG AEAD binds blocked.~%")
+    (format t "Other AF_ALG usage (hash, skcipher) unaffected.~%")
     (format t "Watching for blocked attempts. Press Ctrl-C to exit.~%~%")
     (format t "~20a  ~8a  ~a~%" "TIME" "PID" "COMMAND")
     (format t "~20a  ~8a  ~a~%" "----" "---" "-------")
