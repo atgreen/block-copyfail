@@ -21,8 +21,17 @@ make doctor   # check all prerequisites
 ```sh
 git clone https://github.com/atgreen/block-copyfail.git
 cd block-copyfail
+```
+
+```sh
 make ubi8-build
 sudo ./block-copyfail
+```
+
+### OpenShift quick start
+
+```sh
+oc apply -k ocp
 ```
 
 The blocker stays active until you press Ctrl-C, then cleanly detaches.
