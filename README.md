@@ -28,13 +28,13 @@ make ubi8-build
 sudo ./block-copyfail
 ```
 
+The blocker stays active until you press Ctrl-C, then cleanly detaches.
+
 ### OpenShift quick start
 
 ```sh
 oc apply -k ocp
 ```
-
-The blocker stays active until you press Ctrl-C, then cleanly detaches.
 
 ## Build locally
 
