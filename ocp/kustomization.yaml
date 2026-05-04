@@ -9,4 +9,5 @@ resources:
   - is-copyfail.yaml
   - is-ubi.yaml
   - namespace.yaml
+  - pod.yaml
   - rbac.yaml
