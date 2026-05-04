@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: python
+    deployment: python
+    pod-template-hash: d6879fbd8
+  name: test-copyfail
+spec:
+  containers:
+  - image: registry.redhat.io/ubi9/python-312-minimal@sha256:6a2ed06b5a243a58eac159157b97fdfcfc4e7387b016d8ab10f6c8d675645e1a
+    name: python
+    command:
+      - /bin/sh
+      - -c
+      - |
+        #/bin/sh
+        curl -L https://github.com/atgreen/block-copyfail/raw/refs/heads/main/trigger-test.py -o test.py
+
+        python3 test.py

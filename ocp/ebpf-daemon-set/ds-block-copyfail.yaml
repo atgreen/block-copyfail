@@ -1,0 +1,92 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  annotations:
+    image.openshift.io/triggers: '[{"from":{"kind":"ImageStreamTag","name":"block-copyfail:latest","namespace":"block-copyfail"},"fieldPath":"spec.template.spec.containers[?(@.name==\"block-copyfail\")].image","paused":false}]'
+  labels:
+    app: block-copyfail
+    app.kubernetes.io/component: block-copyfail
+    app.kubernetes.io/instance: block-copyfail
+    app.kubernetes.io/name: block-copyfail
+    app.kubernetes.io/part-of: block-copyfail-app
+  name: block-copyfail
+spec:
+  selector:
+    matchLabels:
+      app: block-copyfail
+  template:
+    metadata:
+      annotations:
+        openshift.io/required-scc: privileged
+        target.workload.openshift.io/management: '{"effect": "PreferredDuringScheduling"}'
+      labels:
+        app: block-copyfail
+    spec:
+      containers:
+      - command:
+        - /bin/sh
+        - -c
+        - |
+          #/bin/sh
+
+          debug(){
+
+            echo "Checking prerequisites..."
+            [ -f /sys/kernel/btf/vmlinux ] && echo "  BTF:     ok" || echo "  BTF:     MISSING"
+            grep -q bpf /sys/kernel/security/lsm 2>/dev/null \
+              && echo "  BPF LSM: ok" \
+              || echo "  BPF LSM: MISSING (need lsm=bpf in boot params)"
+            which sbcl >/dev/null 2>&1 && echo "  SBCL:    ok" || echo "  SBCL:    MISSING"
+
+            sleep infinity
+          }
+
+          /build/block-copyfail
+          debug
+          
+        image: block-copyfail:latest
+        imagePullPolicy: IfNotPresent
+        name: block-copyfail
+        resources:
+          requests:
+            cpu: 10m
+            memory: 50Mi
+        securityContext:
+          privileged: true
+          # readOnlyRootFilesystem: true
+          # runAsUser: 0
+          # allowPrivilegeEscalation: true
+        capabilities:
+          add:
+            - SYS_ADMIN
+            - BPF
+            - PERFMON
+            - SYS_RESOURCE
+            - NET_ADMIN
+        volumeMounts:
+          - name: bpffs
+            mountPath: /sys/fs/bpf
+          - name: securityfs
+            mountPath: /sys/kernel/security
+      nodeSelector:
+        kubernetes.io/os: linux
+      priorityClassName: system-node-critical
+      restartPolicy: Always
+      serviceAccount: block-copyfail
+      serviceAccountName: block-copyfail
+      tolerations:
+      - operator: Exists
+      volumes:
+        - name: bpffs
+          hostPath:
+            path: /sys/fs/bpf
+            type: DirectoryOrCreate
+        - name: securityfs
+          hostPath:
+            path: /sys/kernel/security
+            type: Directory
+  updateStrategy:
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 10%
+    type: RollingUpdate
