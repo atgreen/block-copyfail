@@ -32,6 +32,7 @@ build:
 
 elf:
 	$(SBCL) --noinform --non-interactive \
+	  --eval '(require "asdf")' \
 	  --eval '(pushnew "$(WHISTLER)/" asdf:*central-registry*)' \
 	  --eval '(asdf:load-system "whistler")' \
 	  --eval '(whistler:compile-file* "block-copyfail-elf.lisp" "block-copyfail.bpf.o")'
